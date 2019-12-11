@@ -5,9 +5,15 @@ const multer = require('multer');
 const ffMpeg = require('fluent-ffmpeg');
 const getSize = require('get-folder-size');
 
+const busboy = require('connect-busboy')
+const fs = require('fs-extra')
+const path = require('path');
 let video = require('./Video-Upload.js');
 let audio = require('./Audio-Upload.js');
 let doc = require('./Doc-Upload.js');
+app.use(busboy({
+    highWaterMark: 2 * 1024 * 1024,
+}));
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended:true}));
@@ -85,33 +91,20 @@ port = 3000;
 app.listen(port);
 console.log('UploadServer: ' + port);
 
-// for(i=1;i<=7;i++){
-// 	let a='#';
-// 	for(j=1;j<i;j++){
-// 		a=a+'#';
-// 	}
-// 	console.log(a)
-// 	}
+app.post('/api/upload',(req,res)=>{
+	req.pipe(req.busboy);
+    req.busboy.on('file', (fieldname, file, filename) => {
+        console.log(`Upload of '${filename+Date.now()}' started`);
 
-// for(i=0;i<8;i++){
-// 	let a='';
-// 	for(j=0;j<8;j++){
-// 		if(i%2==0){
-// 		if(j%2==0){
-// 			a=a+' '
-// 		}
-// 		else{
-// 			a=a+'#'
-// 		}
-// 	}
-// 	else{
-// 		if(j%2==0){
-// 			a=a+'#'
-// 		}
-// 		else{
-// 			a=a+' '
-// 		}
-// 	}
-// 	}
-// 	console.log(a)
-// }
+        // Create a write stream of the new file
+        const fstream = fs.createWriteStream(path.join('D:\\', filename+Date.now()+'.mp4'));
+        // Pipe it trough
+        file.pipe(fstream);
+
+        // On finish of the upload
+        fstream.on('close', () => {
+            console.log(`Upload of '${filename+Date.now()}' finished`);
+            res.redirect('back');
+        });
+    });
+})
